@@ -344,6 +344,38 @@ def test_split_cells_single() -> None:
         assert cell_len(right.text) == test.cell_length - position
 
 
+def test_split_cells_zero_width() -> None:
+    """Check that zero width combining characters stay attached to their base character."""
+    hebrew = Segment("שָׁלוֹם")
+    assert hebrew.cell_length == 4
+    assert hebrew.split_cells(3) == (Segment("שָׁלוֹ"), Segment("ם"))
+
+
+def test_split_cells_zero_width_only() -> None:
+    """Check that splitting a segment with no cell width is a no-op."""
+    test = Segment("\u0301\u0302")
+    assert test.cell_length == 0
+    assert test.split_cells(0) == (test, Segment(""))
+    assert test.split_cells(1) == (test, Segment(""))
+
+
+def test_split_cells_zero_width_boundaries() -> None:
+    """Check cuts at zero and the cell length keep combining characters attached."""
+    hebrew = Segment("שָׁלוֹם")
+    assert hebrew.split_cells(0) == (Segment(""), hebrew)
+    assert hebrew.split_cells(hebrew.cell_length) == (hebrew, Segment(""))
+
+
+def test_split_cells_zero_width_double_width_cut() -> None:
+    """Check a double width character straddling the cut still becomes two spaces."""
+    segment = Segment("Xשָׁ💩Y")
+    left, right = segment.split_cells(3)
+    assert left == Segment("Xשָׁ ")
+    assert right == Segment(" Y")
+    assert left.cell_length == 3
+    assert right.cell_length == segment.cell_length - 3
+
+
 def test_segment_lines_renderable():
     lines = [[Segment("hello"), Segment(" "), Segment("world")], [Segment("foo")]]
     segment_lines = SegmentLines(lines)
